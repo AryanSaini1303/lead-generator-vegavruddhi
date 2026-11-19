@@ -1,0 +1,6 @@
+node_modules/
+.env
+*.pem
+service-account*.json
+google-key*.json
+.DS_Store

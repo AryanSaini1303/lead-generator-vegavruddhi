@@ -1,0 +1,22 @@
+{
+  "name": "lead-generator-vegavruddhi",
+  "version": "0.1.0",
+  "description": "WhatsApp template outreach + Google Sheets lead capture (prototype)",
+  "main": "src/server.js",
+  "private": true,
+  "scripts": {
+    "start": "node src/server.js",
+    "setup-sheet": "node scripts/setup-sheet.js",
+    "send": "node scripts/send-batch.js",
+    "upload-media": "node scripts/upload-media.js",
+    "selftest": "node scripts/selftest.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "googleapis": "^190.0.0"
+  }
+}
