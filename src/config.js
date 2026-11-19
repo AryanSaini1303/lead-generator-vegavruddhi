@@ -33,6 +33,13 @@ module.exports = {
   dailySendCap: Number(env('DAILY_SEND_CAP', 250)),
   flushIntervalMs: Number(env('FLUSH_INTERVAL_MS', 3000)),
 
+  // Admin WhatsApp commands (send N / confirm / status / stop). Comma-separated numbers allowed to run them.
+  adminPhones: env('ADMIN_PHONES').split(',').map((p) => p.trim()).filter(Boolean),
+  adminMaxBatch: Number(env('ADMIN_MAX_BATCH', 500)),
+  adminConfirmTtlMin: Number(env('ADMIN_CONFIRM_TTL_MIN', 5)),
+  adminSendDelayMs: Number(env('ADMIN_SEND_DELAY_MS', 200)),
+  adminProgressEvery: Number(env('ADMIN_PROGRESS_EVERY', 20)),
+
   openaiKey: env('OPENAI_API_KEY'),
   classifierModel: env('CLASSIFIER_MODEL', 'gpt-4o-mini'),
 

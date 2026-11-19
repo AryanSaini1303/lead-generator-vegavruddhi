@@ -47,3 +47,24 @@ Node 20+, `npm ci --omit=dev`, copy `.env` and the service-account file, run und
 - Status and replies written by the server are cached in memory; the server reloads the sheet every 2 minutes, so manual edits are picked up shortly. Don't hand-edit `reply_text`, `status` or `intent` for a lead while that lead is actively replying.
 - One WhatsApp number / one template at a time (`PHONE_NUMBER_ID`, `TEMPLATE_NAME`). A second vertical means a second deployment or a small routing change.
 - Webhook de-duplication is in memory, so a server restart in the middle of a Meta retry could log one reply twice.
+
+## Running batches from WhatsApp (admin commands)
+
+Instead of `npm run send` on the server, trusted numbers listed in `ADMIN_PHONES` (comma separated, in `.env`)
+can text the business number:
+
+| Text | What happens |
+|------|--------------|
+| `send 50` | Plans a batch of up to 50. **Nothing is sent**; the bot replies with the plan (who is skipped, daily capacity left) |
+| `confirm` | Sends exactly that plan (must be within 5 min, by the same admin) |
+| `status` | Sent / delivered / read / failed / replies / waiting, daily capacity, batch progress |
+| `stop` | Aborts a running batch after the current message (or cancels a pending plan) |
+| `cancel` | Drops a pending plan |
+| `help` | Lists commands |
+
+Notes: `send --50`, `send message 50` and `initiate process 50` also work. One batch runs at a time. The daily cap
+(`DAILY_SEND_CAP`) and the 131049 cooldown still apply, and `ADMIN_MAX_BATCH` (default 500) limits one command.
+Admin texts that are not commands behave like ordinary customer replies, so an admin who is also a test lead can still
+test reply handling (use "band karo" to test opt-out by text, because `stop` is the admin command).
+If the server restarts mid-batch the run simply ends; already-sent rows are skipped on the next `send`.
+Optional `.env`: `ADMIN_CONFIRM_TTL_MIN`, `ADMIN_SEND_DELAY_MS`, `ADMIN_PROGRESS_EVERY`.

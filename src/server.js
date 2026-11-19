@@ -4,6 +4,7 @@ const { LeadStore, backend } = require('./sheets');
 const { normalizePhone, fmtTime } = require('./phone');
 const { verifySignature, sendText } = require('./whatsapp');
 const { classify } = require('./classifier');
+const admin = require('./admin');
 
 const store = new LeadStore(backend);
 
@@ -74,6 +75,9 @@ async function handleMessage(m) {
     replyType = m.type;
     text = `[${m.type}]`;
   }
+
+  // Admin commands (send N / confirm / status / stop) are consumed here; anything else falls through as a normal reply.
+  if (m.type === 'text' && await admin.handle({ phone, text, store })) return;
 
   store.log('in', phone, m.type, m.id, text);
   const row = await store.find(phone);
@@ -175,6 +179,7 @@ async function start() {
   if (!backend) throw new Error('SHEET_ID is not set (or set MOCK_SHEETS=true for a dry run)');
   await store.load();
   console.log(`[startup] loaded ${store.rows.length} leads from "${config.leadsTab}"`);
+  console.log(`[startup] admin numbers: ${config.adminPhones.length ? config.adminPhones.map((p) => p.replace(/\d(?=\d{4})/g, '*')).join(', ') : 'none (admin commands disabled)'}`);
   console.log(`[startup] accepting webhook events for phone_number_id: ${config.acceptedPhoneNumberIds.join(', ') || 'ANY'}`);
   setInterval(() => store.load().catch((err) => console.warn('[reload] failed:', err.message)), 120000).unref();
 
