@@ -39,6 +39,14 @@ const rowOf = (phone) => store.byPhone.get(phone).data;
   assert.strictEqual(ruleClassify('abhi nahi').intent, 'not_interested');
   assert.strictEqual(ruleClassify('please band karo ye messages').intent, 'stop');
   assert.strictEqual(ruleClassify('subsidy kitni milegi?'), null);
+  assert.deepStrictEqual(
+    [ruleClassify('400001'), ruleClassify('Pincode: 110 045'), ruleClassify('mera pincode 122001 hai')].map((r) => [r.intent, r.pincode]),
+    [['pincode_shared', '400001'], ['pincode_shared', '110045'], ['pincode_shared', '122001']],
+  );
+  assert.strictEqual(ruleClassify('9876543210'), null, 'a phone number is not a pincode');
+  assert.strictEqual(ruleClassify('123 456 7890'), null, 'longer digit groups are not pincodes');
+  assert.strictEqual(ruleClassify('122001 pe solar ka rate kya hai'), null, 'a question with a pincode goes to the LLM');
+  assert.strictEqual(require('../src/classifier').extractPincode('ghar 122001 me hai'), '122001');
 
   // media header is attached, in the order WhatsApp expects: header, body, 3 buttons
   const payload = buildTemplatePayload('919876543210', 'Rahul Sharma');
@@ -114,6 +122,33 @@ const rowOf = (phone) => store.byPhone.get(phone).data;
   assert.strictEqual(rowOf('919876543210').reply_text.split('\n').length, 1, 'duplicate event ignored');
   await processPayload(status('919876543210', 'delivered')); // ack delivery after YES
   assert.strictEqual(rowOf('919876543210').status, 'interested');
+
+  // pincode reply after tapping Yes: stored in its own column, intent is not "wrong_number", status stays interested
+  await processPayload(message('m1b', '919876543210', { type: 'text', text: { body: 'Pincode 400 001' } }));
+  assert.strictEqual(rowOf('919876543210').pincode, '400001');
+  assert.strictEqual(rowOf('919876543210').intent, 'pincode_shared');
+  assert.strictEqual(rowOf('919876543210').status, 'interested');
+  assert.strictEqual(rowOf('919876543210').interested, 'yes');
+
+  // LLM path (stubbed): a longer reply goes to the model, which is told about the pincode question
+  {
+    const cfg = require('../src/config');
+    const { classify } = require('../src/classifier');
+    let sentPrompt = '';
+    cfg.openaiKey = 'test';
+    global.fetch = async (_url, init) => {
+      sentPrompt = JSON.parse(init.body).messages[0].content;
+      return { ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify({ intent: 'pincode_shared', confidence: 0.9, summary: 'Shared pincode (Gurgaon)', pincode: '122 001' }) } }] }) };
+    };
+    const longReply = await classify('mera ghar Sector 21 Gurgaon mein hai, pincode 122001 hai bhai');
+    assert.strictEqual(longReply.intent, 'pincode_shared');
+    assert.strictEqual(longReply.pincode, '122001');
+    assert(/pincode/i.test(sentPrompt) && /NOT wrong_number/.test(sentPrompt), 'prompt explains the pincode question');
+    global.fetch = async () => ({ ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify({ intent: 'other', confidence: 0.3, summary: 'unclear' }) } }] }) });
+    const missed = await classify('bhai Gurgaon me hi lagwana hai 122001 wala area, kab aaoge?');
+    assert.strictEqual(missed.pincode, '122001', 'pincode kept even when the model returned none');
+    cfg.openaiKey = '';
+  }
 
   // free text with no LLM key -> needs_review, STOP by text -> opted out
   await processPayload(message('m2', '919123456780', { type: 'text', text: { body: 'subsidy kitni milegi?' } }));

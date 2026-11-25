@@ -102,6 +102,7 @@ async function handleMessage(m) {
     intent: decision.intent,
   };
   if (decision.summary) fields.ai_summary = decision.summary;
+  if (decision.pincode) fields.pincode = decision.pincode;
 
   let nextStatus = 'replied';
   if (decision.source === 'button' && decision.intent === 'interested') {

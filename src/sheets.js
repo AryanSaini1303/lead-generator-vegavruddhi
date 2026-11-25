@@ -3,7 +3,7 @@ const { normalizePhone, fmtTime } = require('./phone');
 
 const LEAD_COLUMNS = [
   'phone', 'name', 'status', 'sent_at', 'wamid', 'batch_id', 'delivered_at', 'read_at',
-  'reply_type', 'reply_text', 'intent', 'ai_summary', 'interested', 'do_not_contact',
+  'reply_type', 'reply_text', 'intent', 'ai_summary', 'interested', 'pincode', 'do_not_contact',
   'error', 'reviewer_notes', 'verified', 'handed_over', 'business_feedback', 'last_updated',
 ];
 const LOG_COLUMNS = ['time', 'direction', 'phone', 'type', 'wamid', 'payload'];
